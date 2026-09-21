@@ -195,7 +195,7 @@ class GameScene extends Phaser.Scene {
             frameHeight: 600 
         });
 
-        this.load.image('river', 'assets/river.jpg');
+        this.load.image('river', 'assets/river.jpeg');
         this.load.image('canoe', 'assets/canoe.png');
     }
 
