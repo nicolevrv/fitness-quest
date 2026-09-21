@@ -1,22 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de pesas</title>
-    <style>
-        body {
-            background-color: #000;
-            margin: 0;
-            padding: 0;
+<!DOCTYPE html>  
+<html lang="es">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Juego de pesas</title>  
+    <style>  
+        body {  
+            background-color: #000;  
+            margin: 0;  
+            padding: 0;  
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            color: white;
+        }  
+        #ui-container {
+            margin: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
         }
-    </style>
-</head>
+        button {
+            padding: 8px 15px;
+            font-size: 14px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        button.btn-sim {
+            background-color: #007bff;
+        }
+        button.btn-sim:hover {
+            background-color: #0056b3;
+        }
+        button.btn-stop {
+            background-color: #dc3545;
+        }
+        button.btn-stop:hover {
+            background-color: #bd2130;
+        }
+    </style>  
+</head>  
 <body>
-    
-    <script src="src/phaser.min.js"></script>
 
+    <div id="ui-container">
+        <!-- Botón para Arduino -->
+        <button id="btn-connect">Conectar Arduino</button>
+        <span id="status">Estado: Desconectado</span>
+
+        <hr style="width: 100%; border: 1px solid #333; margin: 5px 0;">
+
+        <!-- Botones de Simulación -->
+        <span>Simular:</span>
+        <button class="btn-sim" onclick="simular('curl')">Curl</button>
+        <button class="btn-sim" onclick="simular('lateral_raise')">Elev. Lateral</button>
+        <button class="btn-sim" onclick="simular('press')">Press Militar</button>
+        <button class="btn-sim" onclick="simular('row')">Remo</button>
+        <button class="btn-sim" onclick="simular('triceps')">Tríceps</button>
+        <button class="btn-stop" onclick="simular('still')">Detener (Quieto)</button>
+    </div>
+
+    <script src="src/phaser.min.js"></script>
     <script src="src/script.js"></script>
 
-</body>
+</body>  
 </html>
