@@ -17,11 +17,11 @@ const levelList = ['press', 'row', 'curl', 'lateral_raise', 'triceps'];
 
 // MAPEO DICCIONARIO: Traduce lo que manda el Arduino o la Simulación
 const exerciseMap = {
-    'l': 'lateral_raise',
-    't': 'triceps',
-    'b': 'curl',
-    's': 'press',
-    'r': 'row',
+    'L': 'lateral_raise',
+    'T': 'triceps',
+    'B': 'curl',
+    'S': 'press',
+    'R': 'row',
     '0': 'still',
 
     'lateral raises': 'lateral_raise',
@@ -84,8 +84,8 @@ document.getElementById('btn-connect')?.addEventListener('click', async () => {
             if (statusElem) statusElem.innerText = 'Estado: Conectando...';
 
             const device = await navigator.bluetooth.requestDevice({
-                filters: [{ name: 'FitnessQuest' }],
-                optionalServices: ['19b10000-e8f2-537e-4f6c-d104768a1214']
+                filters: [{ name: 'FitnessGameController' }],
+                optionalServices: ['19b10001-e8f2-537e-4f6c-d104768a1214']
             });
 
             const server = await device.gatt.connect();
@@ -115,13 +115,18 @@ document.getElementById('btn-connect')?.addEventListener('click', async () => {
 // ==========================================
 // 1. ESCENA DE INICIO
 // ==========================================
+// ==========================================
+// 1. ESCENA DE INICIO
+// ==========================================
 class HomeScene extends Phaser.Scene {
     constructor() {
         super({ key: 'HomeScene' });
     }
 
     preload() {
-        // Carga de músicas de fondo y efectos
+        // Carga de imagen de portada y audios
+        this.load.image('home_cover', 'assets/jhonmain.png');
+        
         this.load.audio('bg_menu', 'assets/arrrrrcade.mp3');
         this.load.audio('bg_game', 'assets/urgency.mp3');
         this.load.audio('sfx_countdown', 'assets/countdown.mp3');
@@ -130,7 +135,8 @@ class HomeScene extends Phaser.Scene {
     }
 
     create() {
-        this.cameras.main.setBackgroundColor('#0d1117');
+        // 1. Fondo con la imagen de portada escalada a la pantalla (800x600)
+        this.add.image(400, 300, 'home_cover').setDisplaySize(800, 600);
 
         playMusic(this, 'bg_menu');
 
@@ -138,22 +144,30 @@ class HomeScene extends Phaser.Scene {
             playMusic(this, 'bg_menu');
         });
 
-        this.add.text(400, 180, 'FITNESS QUEST', {
-            fontSize: '48px',
+        // 2. Título principal (Alineado a la derecha en X = 560)
+        this.add.text(560, 150, 'FITNESS QUEST', {
+            fontSize: '40px',
             fill: '#00ffff',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 5
         }).setOrigin(0.5);
 
-        this.add.text(400, 240, 'Entrenamiento con Arduino y Machine Learning', {
-            fontSize: '18px',
-            fill: '#ffffff'
+        // 3. Subtítulo (Con ajuste de ancho para que no choque con los bordes)
+        this.add.text(560, 220, 'Entrenamiento con Arduino\ny Machine Learning', {
+            fontSize: '16px',
+            fill: '#ffffff',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 4
         }).setOrigin(0.5);
 
-        const startBtn = this.add.text(400, 340, ' [ INICIAR JUEGO ] ', {
-            fontSize: '28px',
+        // 4. Botón INICIAR JUEGO
+        const startBtn = this.add.text(560, 330, ' [ INICIAR JUEGO ] ', {
+            fontSize: '22px',
             fill: '#28a745',
             backgroundColor: '#1f2937',
-            padding: { x: 20, y: 10 }
+            padding: { x: 15, y: 10 }
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
@@ -166,11 +180,12 @@ class HomeScene extends Phaser.Scene {
             this.scene.start('DifficultyScene');
         });
 
-        const recordsBtn = this.add.text(400, 430, ' 🏆 TABLA DE RÉCORDS 🏆 ', {
-            fontSize: '22px',
+        // 5. Botón TABLA DE RÉCORDS
+        const recordsBtn = this.add.text(560, 410, ' 🏆 TABLA DE RÉCORDS 🏆 ', {
+            fontSize: '18px',
             fill: '#ffc107',
             backgroundColor: '#1f2937',
-            padding: { x: 15, y: 8 }
+            padding: { x: 12, y: 8 }
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
@@ -184,7 +199,6 @@ class HomeScene extends Phaser.Scene {
         });
     }
 }
-
 
 // ==========================================
 // 2. ESCENA DE DIFICULTAD
@@ -445,15 +459,29 @@ class GameScene extends Phaser.Scene {
         this.hasStartedMoving = false;
         this.canLoseLife = true;
 
-        this.skyBg = this.add.image(400, 280, 'sky').setScale(1.5);
-        this.ground = this.add.image(400, 1020, 'ground').setScale(1.6).setOrigin(0.5, 1);
-        this.riverBg = this.add.tileSprite(400, 300, 800, 600, 'river');
-        this.riverBg.setDisplaySize(800, 600);
-
         const isRowLevel = selectedLevel === 'row';
-        this.riverBg.setVisible(isRowLevel);
-        this.skyBg.setVisible(!isRowLevel);
-        this.ground.setVisible(!isRowLevel);
+
+        // AJUSTE DE FONDOS Y CAPAS (DEPTH)
+        // 1. Cielo de fondo
+        this.skyBg = this.add.image(400, 300, 'sky').setDisplaySize(800, 600).setDepth(0);
+        
+        // 2. Río: Anclado desde la mitad de la pantalla hacia abajo para ocupar todo el cauce del agua
+        this.riverBg = this.add.tileSprite(0, 200, 800, 400, 'river')
+            .setOrigin(0, 0)
+            .setDepth(1);
+        
+        // Ajustamos la textura del río para que cubra la franja sin deformarse
+        this.riverBg.setTileScale(
+            800 / this.textures.get('river').getSourceImage().width,
+            400 / this.textures.get('river').getSourceImage().height
+        );
+        
+        // 3. Tierra de fondo (Mantiene tu Y=1200)
+        this.ground = this.add.image(400, 1200, 'ground').setScale(1.6).setOrigin(0.5, 1).setDepth(2);
+
+        this.skyBg.setVisible(true);          
+        this.riverBg.setVisible(isRowLevel);  
+        this.ground.setVisible(!isRowLevel);  
 
         if (!this.anims.exists('anim_press')) {
             this.anims.create({
@@ -491,24 +519,24 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        this.playerPress = this.add.sprite(410, 233, 'jhon_press').setScale(5).setVisible(selectedLevel === 'press');
-        this.playerBoat = this.add.sprite(400, 233, 'jhon_boat').setScale(5).setVisible(selectedLevel === 'row');
+        this.playerPress = this.add.sprite(410, 233, 'jhon_press').setScale(5).setDepth(3).setVisible(selectedLevel === 'press');
+        this.playerBoat = this.add.sprite(400, 350, 'jhon_boat').setScale(5).setDepth(3).setVisible(selectedLevel === 'row');
 
         this.planeStartY = 200;
         this.planeGroundY = 500;
         this.planeTime = 0;
         this.isCrashing = false;
-        this.playerPlane = this.add.image(400, this.planeStartY, 'jhon_plane').setScale(2).setVisible(selectedLevel === 'lateral_raise');
+        this.playerPlane = this.add.image(400, this.planeStartY, 'jhon_plane').setScale(2).setDepth(3).setVisible(selectedLevel === 'lateral_raise');
 
         const isCurlLevel = selectedLevel === 'curl';
-        this.playerCurl = this.add.sprite(150, 380, 'jhon_pull').setScale(4).setVisible(isCurlLevel);
-        this.pulledLarry = this.add.image(680, 280, 'larry_pull').setScale(4).setVisible(isCurlLevel);
+        this.playerCurl = this.add.sprite(150, 380, 'jhon_pull').setScale(4).setDepth(3).setVisible(isCurlLevel);
+        this.pulledLarry = this.add.image(680, 280, 'larry_pull').setScale(4).setDepth(3).setVisible(isCurlLevel);
         
-        this.ropeGraphics = this.add.graphics();
+        this.ropeGraphics = this.add.graphics().setDepth(3);
         this.ropeGraphics.setVisible(isCurlLevel);
 
         const isTricepsLevel = selectedLevel === 'triceps';
-        this.playerTriceps = this.add.sprite(310, 210, 'jhon_triceps').setScale(5).setVisible(isTricepsLevel);
+        this.playerTriceps = this.add.sprite(310, 210, 'jhon_triceps').setScale(5).setDepth(3).setVisible(isTricepsLevel);
 
         if (selectedLevel === 'row') {
             this.tweens.add({
@@ -526,23 +554,23 @@ class GameScene extends Phaser.Scene {
 
         this.exerciseText = this.add.text(20, 20, `Nivel: ${selectedLevel.toUpperCase()}`, { 
             fontSize: '22px', fill: '#ffffff', backgroundColor: '#000000', padding: { x: 10, y: 5 }
-        });
+        }).setDepth(4);
 
         this.timerText = this.add.text(20, 60, `Aguante: 0s / ${this.targetTime}s`, { 
             fontSize: '20px', fill: '#00ffff', backgroundColor: '#000000', padding: { x: 10, y: 5 }
-        });
+        }).setDepth(4);
 
         this.livesText = this.add.text(20, 100, `Vidas: ${'❤️'.repeat(this.lives)}`, {
             fontSize: '20px', fill: '#ff4444', backgroundColor: '#000000', padding: { x: 10, y: 5 }
-        });
+        }).setDepth(4);
 
         const backBtn = this.add.text(780, 20, '[ MENÚ ]', {
             fontSize: '18px', fill: '#ff4444', backgroundColor: '#000000', padding: 5
-        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).setDepth(4);
 
         backBtn.on('pointerdown', () => this.scene.start('MenuScene'));
 
-        this.progressBar = this.add.graphics();
+        this.progressBar = this.add.graphics().setDepth(4);
     }
 
     update(time, delta) {
@@ -561,7 +589,7 @@ class GameScene extends Phaser.Scene {
                 this.playerPress.play('anim_press', true);
             } else if (selectedLevel === 'row') {
                 this.playerBoat.play('anim_boat', true);
-                this.riverBg.tilePositionX += 6; 
+                this.riverBg.tilePositionX += 10; // Movimiento horizontal continuo de la textura del río
             } else if (selectedLevel === 'curl') {
                 this.playerCurl.play('anim_jhon_pull', true);
                 if (this.pulledLarry) {
