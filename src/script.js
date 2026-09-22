@@ -260,10 +260,10 @@ class MenuScene extends Phaser.Scene {
         this.add.text(400, 90, `Dificultad seleccionada: ${diffName}`, { fontSize: '16px', fill: '#ffc107' }).setOrigin(0.5);
 
         const levels = [
-            { name: 'Nivel 1: Press Militar (Sostener Peso)', key: 'press' },
-            { name: 'Nivel 2: Remo Inclinado (Navegar Canoa)', key: 'row' },
+            { name: 'Nivel 1: Press Militar (Sostener Auto)', key: 'press' },
+            { name: 'Nivel 2: Remo Inclinado (Navegar Bote)', key: 'row' },
             { name: 'Nivel 3: Curl de Bíceps (Jalar Cuerda)', key: 'curl' },
-            { name: 'Nivel 4: Elevación Lateral (Abrir Alas)', key: 'lateral_raise' },
+            { name: 'Nivel 4: Elevación Lateral (Pilotar Avión)', key: 'lateral_raise' },
             { name: 'Nivel 5: Extensión Tríceps (Cargar Catapulta)', key: 'triceps' }
         ];
 
@@ -360,69 +360,72 @@ class GameScene extends Phaser.Scene {
     }
 
     preload() {
+        // Escenarios base (SIN MODIFICAR POSICIONES ORIGINALES)
         this.load.image('sky', 'assets/sky.jpg');
         this.load.image('ground', 'assets/ground.png');
+        this.load.image('river', 'assets/river.jpeg');
+
+        // Spritesheets actualizados
+        this.load.spritesheet('jhon_press', 'assets/JhonRabbitPress.png', {
+            frameWidth: 128, // 1200 / 6
+            frameHeight: 120
+        });
+
+        this.load.spritesheet('jhon_boat', 'assets/JhonRabbitBoat.png', {
+            frameWidth: 128, // 800 / 6
+            frameHeight: 120
+        });
+
+        this.load.image('jhon_plane', 'assets/JhonRabbitPlane.png');
+
+        // Placeholder estándar para los demás minijuegos
         this.load.spritesheet('placeholder2', 'assets/placeholder2.png', { 
             frameWidth: 600, 
             frameHeight: 600 
         });
-
-        this.load.image('river', 'assets/river.jpeg');
-        this.load.image('canoe', 'assets/canoe.png');
     }
 
     create() {
-        this.levelCompleted = false; // Control de guardado de récord
-        this.elapsedTime = 0; // Tiempo total empleado para ganar
+        this.levelCompleted = false;
+        this.elapsedTime = 0;
 
         // --- SISTEMA DE VIDAS ---
         this.lives = 4;
-        this.hasStartedMoving = false; // Para evitar perder vida antes de empezar a ejercitar
-        this.canLoseLife = true;       // Cooldown tras perder vida
+        this.hasStartedMoving = false;
+        this.canLoseLife = true;
 
-        // --- ESCENARIO BASE (POSICIONES ORIGINALES) ---
+        // --- ESCENARIOS BASE (SIN MODIFICAR POSICIONES) ---
         this.skyBg = this.add.image(400, 280, 'sky').setScale(1.5);
         this.ground = this.add.image(400, 1020, 'ground').setScale(1.6).setOrigin(0.5, 1);
 
-        // --- ESCENARIO DE REMO (POSICIONES ORIGINALES) ---
         this.riverBg = this.add.tileSprite(400, 300, 800, 600, 'river');
         this.riverBg.setDisplaySize(800, 600);
-        this.canoe = this.add.image(400, 360, 'canoe').setScale(0.5);
 
-        // Visibilidad de escenarios
+        // Visibilidad según el nivel
         const isRowLevel = selectedLevel === 'row';
         this.riverBg.setVisible(isRowLevel);
-        this.canoe.setVisible(isRowLevel);
         this.skyBg.setVisible(!isRowLevel);
         this.ground.setVisible(!isRowLevel);
 
-        // --- PERSONAJE (POSICIONADO A LA IZQUIERDA Y A LA MITAD DE LA PANTALLA) ---
-        this.player = this.add.sprite(100, 300, 'placeholder2').setScale(0.3);
+        // REGISTRO DE ANIMACIONES
+        if (!this.anims.exists('anim_press')) {
+            this.anims.create({
+                key: 'anim_press',
+                frames: this.anims.generateFrameNumbers('jhon_press', { start: 0, end: 5 }),
+                frameRate: 8,
+                repeat: -1
+            });
+        }
 
-        // --- NIVEL 1: PRESS (POSICIONES ORIGINALES) ---
-        this.heavyObject = this.add.rectangle(400, 350, 280, 120, 0x888888);
-        this.heavyObject.setVisible(selectedLevel === 'press');
+        if (!this.anims.exists('anim_boat')) {
+            this.anims.create({
+                key: 'anim_boat',
+                frames: this.anims.generateFrameNumbers('jhon_boat', { start: 0, end: 5 }),
+                frameRate: 8,
+                repeat: -1
+            });
+        }
 
-        // --- NIVEL 3: CURL (POSICIONES ORIGINALES) ---
-        const isCurlLevel = selectedLevel === 'curl';
-        this.ropeGraphics = this.add.graphics();
-        this.ropeGraphics.setVisible(isCurlLevel);
-        this.pulledObject = this.add.rectangle(750, 380, 80, 60, 0x8b4513);
-        this.pulledObject.setVisible(isCurlLevel);
-
-        // --- NIVEL 4: ELEVACIÓN LATERAL (POSICIONES ORIGINALES) ---
-        const isLateralLevel = selectedLevel === 'lateral_raise';
-        this.planeBody = this.add.rectangle(400, 300, 30, 120, 0x00ffff).setVisible(isLateralLevel);
-        this.wingLeft = this.add.rectangle(385, 300, 20, 24, 0x0088ff).setOrigin(1, 0.5).setVisible(isLateralLevel);
-        this.wingRight = this.add.rectangle(415, 300, 20, 24, 0x0088ff).setOrigin(0, 0.5).setVisible(isLateralLevel);
-
-        // --- NIVEL 5: TRÍCEPS (POSICIONES ORIGINALES) ---
-        const isTricepsLevel = selectedLevel === 'triceps';
-        this.catapultBase = this.add.rectangle(400, 420, 80, 20, 0x555555).setVisible(isTricepsLevel);
-        this.catapultArm = this.add.rectangle(400, 420, 140, 10, 0x8b4513).setOrigin(0, 0.5).setVisible(isTricepsLevel);
-        this.catapultArm.angle = 0;
-
-        // Registrar animación solo una vez
         if (!this.anims.exists('mover_placeholder')) {
             this.anims.create({
                 key: 'mover_placeholder',
@@ -432,7 +435,51 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        // --- TIEMPO SEGÚN DIFICULTAD SELECCIONADA ---
+        // --- JUGADORES / ELEMENTOS SEGÚN CADA MINIJUEGO ---
+
+        // 1. PRESS MILITAR (Jhon cargando auto)
+        this.playerPress = this.add.sprite(400, 380, 'jhon_press').setScale(3).setVisible(selectedLevel === 'press');
+
+        // 2. REMO (Jhon en bote)
+        this.playerBoat = this.add.sprite(400, 360, 'jhon_boat').setScale(3).setVisible(selectedLevel === 'row');
+
+        // 3. ELEVACIÓN LATERAL (Jhon en avión)
+        this.planeStartY = 200; // Altura base sobre la que oscila
+        this.planeGroundY = 500; // Altura del suelo para impacto
+        this.planeTime = 0; // Acumulador para oscilación sinusoidal
+        this.isCrashing = false;
+
+        this.playerPlane = this.add.image(400, this.planeStartY, 'jhon_plane').setScale(2).setVisible(selectedLevel === 'lateral_raise');
+
+        // 4. PERSONAJE GENÉRICO (Para Curl y Tríceps)
+        const isGeneric = selectedLevel === 'curl' || selectedLevel === 'triceps';
+        this.player = this.add.sprite(100, 300, 'placeholder2').setScale(0.3).setVisible(isGeneric);
+
+        // Balanceo leve (de arriba a abajo) solo para Bote
+        if (selectedLevel === 'row') {
+            this.tweens.add({
+                targets: this.playerBoat,
+                y: '+=8',
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        // --- ELEMENTOS SECUNDARIOS POR NIVEL ---
+        // Nivel 3: Curl (Cuerda y Caja)
+        const isCurlLevel = selectedLevel === 'curl';
+        this.ropeGraphics = this.add.graphics().setVisible(isCurlLevel);
+        this.pulledObject = this.add.rectangle(750, 380, 80, 60, 0x8b4513).setVisible(isCurlLevel);
+
+        // Nivel 5: Tríceps (Catapulta)
+        const isTricepsLevel = selectedLevel === 'triceps';
+        this.catapultBase = this.add.rectangle(400, 420, 80, 20, 0x555555).setVisible(isTricepsLevel);
+        this.catapultArm = this.add.rectangle(400, 420, 140, 10, 0x8b4513).setOrigin(0, 0.5).setVisible(isTricepsLevel);
+        this.catapultArm.angle = 0;
+
+        // --- TIEMPO SEGÚN DIFICULTAD ---
         if (selectedDifficulty === 'custom') {
             this.targetTime = customTime;
         } else {
@@ -456,7 +503,6 @@ class GameScene extends Phaser.Scene {
             padding: { x: 10, y: 5 }
         });
 
-        // UI - VISUALIZACIÓN DE VIDAS
         this.livesText = this.add.text(20, 100, `Vidas: ${'❤️'.repeat(this.lives)}`, {
             fontSize: '20px',
             fill: '#ff4444',
@@ -485,43 +531,73 @@ class GameScene extends Phaser.Scene {
         }
 
         if (currentExercise === selectedLevel) {
-            this.hasStartedMoving = true; // El jugador ha comenzado a responder
-            this.player.play('mover_placeholder', true);
+            this.hasStartedMoving = true;
             this.holdTime += deltaSec;
 
+            // Reproducir animaciones activas según el nivel
             if (selectedLevel === 'press') {
-                this.heavyObject.y = Math.max(180, this.heavyObject.y - 2);
+                this.playerPress.play('anim_press', true);
             } else if (selectedLevel === 'row') {
+                this.playerBoat.play('anim_boat', true);
                 this.riverBg.tilePositionX += 6; 
             } else if (selectedLevel === 'curl') {
+                this.player.play('mover_placeholder', true);
                 this.pulledObject.x = Math.max(350, this.pulledObject.x - 3);
             } else if (selectedLevel === 'lateral_raise') {
-                this.wingLeft.width = Math.min(130, this.wingLeft.width + 1.8);
-                this.wingRight.width = Math.min(130, this.wingRight.width + 1.8);
+                // Eleva la altura base si el avión cayó previamente
+                if (!this.isCrashing && this.planeStartY > 200) {
+                    this.planeStartY = Math.max(200, this.planeStartY - 120 * deltaSec);
+                }
+
+                // Oscilación de arriba a abajo (Onda Sinusoidal)
+                this.planeTime += deltaSec * 3;
+                let wave = Math.sin(this.planeTime) * 15;
+
+                if (!this.isCrashing) {
+                    this.playerPlane.y = this.planeStartY + wave;
+                }
             } else if (selectedLevel === 'triceps') {
+                this.player.play('mover_placeholder', true);
                 this.catapultArm.angle = Math.max(-90, this.catapultArm.angle - 1.8);
             }
 
         } else {
-            this.player.anims.stop();
-            this.player.setFrame(0);
-            
+            // Detener animaciones al estar reposo / ejercicio incorrecto
+            if (selectedLevel === 'press') {
+                this.playerPress.anims.stop();
+                this.playerPress.setFrame(0);
+            } else if (selectedLevel === 'row') {
+                this.playerBoat.anims.stop();
+                this.playerBoat.setFrame(0);
+            } else if (selectedLevel === 'curl' || selectedLevel === 'triceps') {
+                this.player.anims.stop();
+                this.player.setFrame(0);
+            }
+
             this.holdTime = Math.max(0, this.holdTime - deltaSec * 1.5);
 
-            if (selectedLevel === 'press' && this.heavyObject.y < 350) {
-                this.heavyObject.y += 3;
-            } else if (selectedLevel === 'curl' && this.pulledObject.x < 750) {
+            // Caída progresiva del avión manteniendo el bamboleo natural
+            if (selectedLevel === 'lateral_raise' && !this.isCrashing && this.hasStartedMoving) {
+                this.planeStartY += 110 * deltaSec;
+
+                this.planeTime += deltaSec * 3;
+                let wave = Math.sin(this.planeTime) * 15;
+                this.playerPlane.y = this.planeStartY + wave;
+
+                // Choque al llegar al suelo
+                if (this.planeStartY >= this.planeGroundY) {
+                    this.crashPlane();
+                }
+            }
+
+            if (selectedLevel === 'curl' && this.pulledObject.x < 750) {
                 this.pulledObject.x += 2;
-            } else if (selectedLevel === 'lateral_raise') {
-                this.wingLeft.width = Math.max(20, this.wingLeft.width - 2);
-                this.wingRight.width = Math.max(20, this.wingRight.width - 2);
             } else if (selectedLevel === 'triceps') {
                 this.catapultArm.angle = Math.min(0, this.catapultArm.angle + 2);
             }
 
-            // --- DETECCIÓN DE PÉRDIDA DE VIDA ---
-            // Si la barra se vacía por completo habiendo empezado a jugar
-            if (this.holdTime === 0 && this.hasStartedMoving && this.canLoseLife && !this.levelCompleted) {
+            // --- DETECCIÓN DE PÉRDIDA DE VIDA (Para demás niveles) ---
+            if (selectedLevel !== 'lateral_raise' && this.holdTime === 0 && this.hasStartedMoving && this.canLoseLife && !this.levelCompleted) {
                 this.loseLife();
             }
         }
@@ -530,7 +606,7 @@ class GameScene extends Phaser.Scene {
             this.drawRope();
         }
 
-        // Actualización de interfaz
+        // Actualización de UI
         this.timerText.setText(`Aguante: ${this.holdTime.toFixed(1)}s / ${target}s`);
         this.drawBar(this.holdTime, target);
 
@@ -538,7 +614,6 @@ class GameScene extends Phaser.Scene {
             if (!this.levelCompleted) {
                 this.levelCompleted = true;
                 this.saveRecord();
-                // Transición a la pantalla de ganar
                 this.time.delayedCall(500, () => {
                     this.scene.start('WinScene', { elapsedTime: this.elapsedTime });
                 });
@@ -548,22 +623,35 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    crashPlane() {
+        this.isCrashing = true;
+        this.playerPlane.y = this.planeGroundY;
+        this.cameras.main.shake(200, 0.01);
+        
+        this.loseLife();
+
+        this.time.delayedCall(800, () => {
+            if (this.lives > 0) {
+                this.planeStartY = 200; // Restablece la altura base original
+                this.playerPlane.y = this.planeStartY;
+                this.isCrashing = false;
+            }
+        });
+    }
+
     loseLife() {
         this.lives--;
         this.canLoseLife = false;
-        this.hasStartedMoving = false; // Reset para exigir acción nuevamente antes de la próxima penalización
+        this.hasStartedMoving = false;
 
-        // Efecto visual de flash en la pantalla
         this.cameras.main.flash(300, 255, 0, 0);
 
-        // Actualizar UI de vidas
         const hearts = '❤️'.repeat(Math.max(0, this.lives)) + '🖤'.repeat(Math.max(0, 4 - this.lives));
         this.livesText.setText(`Vidas: ${hearts}`);
 
         if (this.lives <= 0) {
             this.scene.start('GameOverScene');
         } else {
-            // Cooldown de 1.5 segundos de inmunidad para dar tiempo al usuario de reactivar el ejercicio
             this.time.delayedCall(1500, () => {
                 this.canLoseLife = true;
             });
@@ -574,14 +662,12 @@ class GameScene extends Phaser.Scene {
         let records = JSON.parse(localStorage.getItem('fitness_quest_records')) || {};
         let key = `${selectedDifficulty}_${selectedLevel}`;
         
-        // Se guarda si es el mejor (menor) tiempo en completar el reto
         if (!records[key] || this.elapsedTime < records[key]) {
             records[key] = parseFloat(this.elapsedTime.toFixed(1));
             localStorage.setItem('fitness_quest_records', JSON.stringify(records));
         }
     }
 
-    // CUERDA CON COORDENADAS ORIGINALES (250, 380)
     drawRope() {
         this.ropeGraphics.clear();
         this.ropeGraphics.lineStyle(5, 0xd2b48c, 1);
@@ -606,7 +692,7 @@ class GameScene extends Phaser.Scene {
 
 
 // ==========================================
-// 6. ESCENA DE GAME OVER (DERROTA POR SIN VIDAS)
+// 6. ESCENA DE GAME OVER
 // ==========================================
 class GameOverScene extends Phaser.Scene {
     constructor() {
@@ -653,7 +739,7 @@ class GameOverScene extends Phaser.Scene {
 
 
 // ==========================================
-// 7. ESCENA DE GANAR (PANTALLA DE VICTORIA)
+// 7. ESCENA DE GANAR
 // ==========================================
 class WinScene extends Phaser.Scene {
     constructor() {
@@ -683,7 +769,6 @@ class WinScene extends Phaser.Scene {
             fill: '#ffc107'
         }).setOrigin(0.5);
 
-        // Determinar siguiente nivel
         const currentIndex = levelList.indexOf(selectedLevel);
         const hasNextLevel = currentIndex !== -1 && currentIndex < levelList.length - 1;
 
@@ -788,7 +873,6 @@ class RecordScene extends Phaser.Scene {
             this.add.rectangle(400, startY + (index * 55) + 25, 420, 1, 0x374151);
         });
 
-        // Botón Borrar Récords
         const resetBtn = this.add.text(280, 520, '🗑️ Borrar Récords', {
             fontSize: '16px', fill: '#ff4444', backgroundColor: '#1f2937', padding: 8
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -798,7 +882,6 @@ class RecordScene extends Phaser.Scene {
             this.scene.restart();
         });
 
-        // Botón Volver al Menú
         const backBtn = this.add.text(520, 520, '🏠 Volver al Menú', {
             fontSize: '16px', fill: '#ffffff', backgroundColor: '#28a745', padding: 8
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
