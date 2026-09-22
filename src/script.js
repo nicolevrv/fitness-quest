@@ -264,7 +264,7 @@ class MenuScene extends Phaser.Scene {
             { name: 'Nivel 2: Remo Inclinado (Navegar Bote)', key: 'row' },
             { name: 'Nivel 3: Curl de Bíceps (Jalar Cuerda con Larry)', key: 'curl' },
             { name: 'Nivel 4: Elevación Lateral (Pilotar Avión)', key: 'lateral_raise' },
-            { name: 'Nivel 5: Extensión Tríceps (Cargar Catapulta)', key: 'triceps' }
+            { name: 'Nivel 5: Extensión Tríceps (Juego del Mazo)', key: 'triceps' }
         ];
 
         levels.forEach((lvl, index) => {
@@ -378,8 +378,9 @@ class GameScene extends Phaser.Scene {
 
         this.load.image('larry_pull', 'assets/LarryRabbitPull.png');
 
-        this.load.spritesheet('placeholder2', 'assets/placeholder2.png', { 
-            frameWidth: 600, frameHeight: 600 
+        // Carga del nuevo spritesheet para Extensión de Tríceps (128x128)
+        this.load.spritesheet('jhon_triceps', 'assets/JhonRabbitTriceps.png', { 
+            frameWidth: 128, frameHeight: 128 
         });
     }
 
@@ -427,10 +428,10 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (!this.anims.exists('mover_placeholder')) {
+        if (!this.anims.exists('anim_triceps')) {
             this.anims.create({
-                key: 'mover_placeholder',
-                frames: this.anims.generateFrameNumbers('placeholder2', { start: 0, end: 5 }),
+                key: 'anim_triceps',
+                frames: this.anims.generateFrameNumbers('jhon_triceps', { start: 0, end: 10 }),
                 frameRate: 8,
                 repeat: -1
             });
@@ -453,7 +454,7 @@ class GameScene extends Phaser.Scene {
         this.ropeGraphics.setVisible(isCurlLevel);
 
         const isTricepsLevel = selectedLevel === 'triceps';
-        this.player = this.add.sprite(100, 300, 'placeholder2').setScale(0.3).setVisible(isTricepsLevel);
+        this.playerTriceps = this.add.sprite(310, 210, 'jhon_triceps').setScale(5).setVisible(isTricepsLevel);
 
         if (selectedLevel === 'row') {
             this.tweens.add({
@@ -465,9 +466,6 @@ class GameScene extends Phaser.Scene {
                 ease: 'Sine.easeInOut'
             });
         }
-
-        this.catapultBase = this.add.rectangle(400, 420, 80, 20, 0x555555).setVisible(isTricepsLevel);
-        this.catapultArm = this.add.rectangle(400, 420, 140, 10, 0x8b4513).setOrigin(0, 0.5).setVisible(isTricepsLevel);
 
         this.targetTime = selectedDifficulty === 'custom' ? customTime : (difficultySettings[selectedDifficulty][selectedLevel] || 10);
         this.holdTime = 0;
@@ -531,8 +529,7 @@ class GameScene extends Phaser.Scene {
                     this.playerPlane.y = this.planeStartY + wave;
                 }
             } else if (selectedLevel === 'triceps') {
-                this.player.play('mover_placeholder', true);
-                this.catapultArm.angle = Math.max(-90, this.catapultArm.angle - 1.8);
+                this.playerTriceps.play('anim_triceps', true);
             }
 
         } else {
@@ -545,9 +542,9 @@ class GameScene extends Phaser.Scene {
             } else if (selectedLevel === 'curl' && this.playerCurl.anims.isPlaying) {
                 this.playerCurl.anims.stop();
                 this.playerCurl.setFrame(0);
-            } else if (selectedLevel === 'triceps' && this.player.anims.isPlaying) {
-                this.player.anims.stop();
-                this.player.setFrame(0);
+            } else if (selectedLevel === 'triceps' && this.playerTriceps.anims.isPlaying) {
+                this.playerTriceps.anims.stop();
+                this.playerTriceps.setFrame(0);
             }
 
             this.holdTime = Math.max(0, this.holdTime - deltaSec * 1.5);
@@ -569,8 +566,6 @@ class GameScene extends Phaser.Scene {
                     500,
                     this.pulledLarry.x - 0.6 + resistance
                 );
-            } else if (selectedLevel === 'triceps') {
-                this.catapultArm.angle = Math.min(0, this.catapultArm.angle + 2);
             }
 
             if (selectedLevel !== 'lateral_raise' && this.holdTime === 0 && this.hasStartedMoving && this.canLoseLife && !this.levelCompleted) {
@@ -873,7 +868,9 @@ const config = {
     width: 800,
     height: 600,
     parent: 'phaser-game',
-    scene: [HomeScene, DifficultyScene, MenuScene, CountdownScene, GameScene, GameOverScene, WinScene, RecordScene]
+    scene: [HomeScene, DifficultyScene, MenuScene, CountdownScene, GameScene, GameOverScene, WinScene, RecordScene],
+    antialias: false,
+    roundPixels: true,
 };
 
 const game = new Phaser.Game(config);
