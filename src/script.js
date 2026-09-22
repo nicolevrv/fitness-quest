@@ -411,7 +411,8 @@ class GameScene extends Phaser.Scene {
     preload() {
         this.load.image('sky', 'assets/sky.jpg');
         this.load.image('ground', 'assets/ground.png');
-        this.load.image('river', 'assets/river.jpeg');
+        this.load.image('river', 'assets/river.png');
+        this.load.image('home_bg', 'assets/titleScreen.png');
 
         this.load.spritesheet('jhon_press', 'assets/JhonRabbitPress.png', {
             frameWidth: 128, frameHeight: 120
