@@ -45,41 +45,45 @@ function simular(ejercicio) {
     console.log("Simulando ejercicio:", currentExercise);
 }
 
-// --- CONEXIÓN SERIAL CON ARDUINO ---
-document.getElementById('btn-connect')?.addEventListener('click', async () => {
-    if ('serial' in navigator) {
-        try {
-            const port = await navigator.serial.requestPort();
-            await port.open({ baudRate: 115200 });
-            document.getElementById('status').innerText = 'Estado: Conectado';
-            
-            const textDecoder = new TextDecoderStream();
-            const listenToStream = port.readable.pipeTo(textDecoder.writable);
-            const reader = textDecoder.readable.getReader();
+// --- FUNCIÓN DE PROCESAMIENTO DE COMANDOS ---
+function procesarComando(valor) {
+    const key = valor.trim().toLowerCase();
+    currentExercise = exerciseMap[key] || key;
+    console.log("Comando recibido vía BLE:", currentExercise);
+}
 
-            let buffer = '';
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                if (value) {
-                    buffer += value;
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop();
-                    
-                    for (const line of lines) {
-                        const trimmed = line.trim().toLowerCase();
-                        if (trimmed) {
-                            currentExercise = exerciseMap[trimmed] || trimmed;
-                        }
-                    }
-                }
-            }
+// --- CONEXIÓN BLE CON ARDUINO ---
+document.getElementById('btn-connect')?.addEventListener('click', async () => {
+    if ('bluetooth' in navigator) {
+        try {
+            const statusElem = document.getElementById('status');
+            if (statusElem) statusElem.innerText = 'Estado: Conectando...';
+
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [{ name: 'FitnessQuest' }],
+                optionalServices: ['19b10000-e8f2-537e-4f6c-d104768a1214']
+            });
+
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService('19b10000-e8f2-537e-4f6c-d104768a1214');
+            const characteristic = await service.getCharacteristic('19b10001-e8f2-537e-4f6c-d104768a1214');
+
+            await characteristic.startNotifications();
+            characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                const decoder = new TextDecoder('utf-8');
+                const valor = decoder.decode(event.target.value);
+                procesarComando(valor);
+            });
+
+            if (statusElem) statusElem.innerText = 'Estado: Conectado (BLE)';
+            console.log("¡Conectado exitosamente por BLE!");
         } catch (err) {
-            console.error('Error al conectar:', err);
-            document.getElementById('status').innerText = 'Error al conectar';
+            console.error('Error al conectar por BLE:', err);
+            const statusElem = document.getElementById('status');
+            if (statusElem) statusElem.innerText = 'Error al conectar BLE';
         }
     } else {
-        alert('Web Serial API no es soportada en este navegador. Usa Chrome o Edge.');
+        alert('Web Bluetooth API no es soportada en este navegador. Usa Chrome o Edge.');
     }
 });
 
