@@ -396,8 +396,8 @@ class GameScene extends Phaser.Scene {
         this.skyBg.setVisible(!isRowLevel);
         this.ground.setVisible(!isRowLevel);
 
-        // --- PERSONAJE (POSICIÓN ORIGINAL 100, 100) ---
-        this.player = this.add.sprite(100, 100, 'placeholder2').setScale(0.3);
+        // --- PERSONAJE (POSICIONADO A LA IZQUIERDA Y A LA MITAD DE LA PANTALLA) ---
+        this.player = this.add.sprite(100, 300, 'placeholder2').setScale(0.3);
 
         // --- NIVEL 1: PRESS (POSICIONES ORIGINALES) ---
         this.heavyObject = this.add.rectangle(400, 350, 280, 120, 0x888888);
