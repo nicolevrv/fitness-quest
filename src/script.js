@@ -442,8 +442,8 @@ class GameScene extends Phaser.Scene {
         this.playerPlane = this.add.image(400, this.planeStartY, 'jhon_plane').setScale(2).setVisible(selectedLevel === 'lateral_raise');
 
         const isCurlLevel = selectedLevel === 'curl';
-        this.playerCurl = this.add.sprite(200, 444, 'jhon_pull').setScale(2.5).setVisible(isCurlLevel);
-        this.pulledLarry = this.add.image(700, 380, 'larry_pull').setScale(2.5).setVisible(isCurlLevel);
+        this.playerCurl = this.add.sprite(150, 380, 'jhon_pull').setScale(4).setVisible(isCurlLevel);
+        this.pulledLarry = this.add.image(680, 280, 'larry_pull').setScale(4).setVisible(isCurlLevel);
         
         this.ropeGraphics = this.add.graphics();
         this.ropeGraphics.setVisible(isCurlLevel);
@@ -653,17 +653,17 @@ class GameScene extends Phaser.Scene {
 
         this.ropeGraphics.moveTo(
             this.playerCurl.x + 40,
-            this.playerCurl.y + 10
+            this.playerCurl.y + 35
         );
 
         this.ropeGraphics.lineTo(
             (this.playerCurl.x + this.pulledLarry.x) / 2,
-            this.playerCurl.y + 10 + tension
+            this.playerCurl.y + 20 + tension
         );
 
         this.ropeGraphics.lineTo(
             this.pulledLarry.x - 30,
-            this.pulledLarry.y + 70
+            this.pulledLarry.y + 128
         );
 
         this.ropeGraphics.strokePath();
