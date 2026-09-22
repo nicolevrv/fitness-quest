@@ -52,6 +52,30 @@ function procesarComando(valor) {
     console.log("Comando recibido vía BLE:", currentExercise);
 }
 
+// --- HELPER DE AUDIO CONTROLADO ---
+function playMusic(scene, key) {
+    const musicKeys = ['bg_menu', 'bg_game'];
+    
+    // Detiene la otra música que pudiera estar sonando
+    musicKeys.forEach(mKey => {
+        if (mKey !== key) {
+            const otherMusic = scene.sound.get(mKey);
+            if (otherMusic && otherMusic.isPlaying) {
+                otherMusic.stop();
+            }
+        }
+    });
+
+    // Reproduce la música seleccionada si no está activa
+    let currentMusic = scene.sound.get(key);
+    if (!currentMusic) {
+        currentMusic = scene.sound.add(key, { loop: true, volume: 0.5 });
+    }
+    if (!currentMusic.isPlaying) {
+        currentMusic.play();
+    }
+}
+
 // --- CONEXIÓN BLE CON ARDUINO ---
 document.getElementById('btn-connect')?.addEventListener('click', async () => {
     if ('bluetooth' in navigator) {
@@ -96,8 +120,23 @@ class HomeScene extends Phaser.Scene {
         super({ key: 'HomeScene' });
     }
 
+    preload() {
+        // Carga de músicas de fondo y efectos
+        this.load.audio('bg_menu', 'assets/arrrrrcade.mp3');
+        this.load.audio('bg_game', 'assets/urgency.mp3');
+        this.load.audio('sfx_countdown', 'assets/countdown.mp3');
+        this.load.audio('sfx_ow', 'assets/ow.mp3');
+        this.load.audio('sfx_you_lose', 'assets/you_lose.mp3');
+    }
+
     create() {
         this.cameras.main.setBackgroundColor('#0d1117');
+
+        playMusic(this, 'bg_menu');
+
+        this.input.once('pointerdown', () => {
+            playMusic(this, 'bg_menu');
+        });
 
         this.add.text(400, 180, 'FITNESS QUEST', {
             fontSize: '48px',
@@ -123,6 +162,7 @@ class HomeScene extends Phaser.Scene {
         startBtn.on('pointerout', () => startBtn.setStyle({ fill: '#28a745', backgroundColor: '#1f2937' }));
 
         startBtn.on('pointerdown', () => {
+            playMusic(this, 'bg_menu');
             this.scene.start('DifficultyScene');
         });
 
@@ -139,6 +179,7 @@ class HomeScene extends Phaser.Scene {
         recordsBtn.on('pointerout', () => recordsBtn.setStyle({ fill: '#ffc107', backgroundColor: '#1f2937' }));
 
         recordsBtn.on('pointerdown', () => {
+            playMusic(this, 'bg_menu');
             this.scene.start('RecordScene');
         });
     }
@@ -154,6 +195,7 @@ class DifficultyScene extends Phaser.Scene {
     }
 
     create() {
+        playMusic(this, 'bg_menu');
         this.cameras.main.setBackgroundColor('#0d1117');
 
         this.add.text(400, 60, 'SELECCIONA LA DIFICULTAD', {
@@ -248,6 +290,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     create() {
+        playMusic(this, 'bg_menu');
         this.cameras.main.setBackgroundColor('#0d1117');
 
         this.add.text(400, 50, 'SELECCIONA TU NIVEL', {
@@ -314,6 +357,12 @@ class CountdownScene extends Phaser.Scene {
     }
 
     create() {
+        // Silenciamos la música de menú durante el conteo
+        const bgMusic = this.sound.get('bg_menu');
+        if (bgMusic && bgMusic.isPlaying) {
+            bgMusic.stop();
+        }
+
         this.cameras.main.setBackgroundColor('#111827');
 
         this.add.text(400, 200, `PREPÁRATE PARA: ${selectedLevel.toUpperCase()}`, {
@@ -322,13 +371,15 @@ class CountdownScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.countText = this.add.text(400, 320, '3', {
+        this.counter = 3;
+
+        this.countText = this.add.text(400, 320, this.counter.toString(), {
             fontSize: '96px',
             fill: '#ffc107',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        this.counter = 3;
+        this.sound.play('sfx_countdown');
 
         this.time.addEvent({
             delay: 1000,
@@ -378,13 +429,15 @@ class GameScene extends Phaser.Scene {
 
         this.load.image('larry_pull', 'assets/LarryRabbitPull.png');
 
-        // Carga del nuevo spritesheet para Extensión de Tríceps (128x128)
         this.load.spritesheet('jhon_triceps', 'assets/JhonRabbitTriceps.png', { 
             frameWidth: 128, frameHeight: 128 
         });
     }
 
     create() {
+        // Inicia la música de acción del juego (urgency.mp3)
+        playMusic(this, 'bg_game');
+
         this.levelCompleted = false;
         this.elapsedTime = 0;
         this.lives = 4;
@@ -437,8 +490,8 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        this.playerPress = this.add.sprite(400, 380, 'jhon_press').setScale(3).setVisible(selectedLevel === 'press');
-        this.playerBoat = this.add.sprite(400, 360, 'jhon_boat').setScale(3).setVisible(selectedLevel === 'row');
+        this.playerPress = this.add.sprite(410, 233, 'jhon_press').setScale(5).setVisible(selectedLevel === 'press');
+        this.playerBoat = this.add.sprite(400, 233, 'jhon_boat').setScale(5).setVisible(selectedLevel === 'row');
 
         this.planeStartY = 200;
         this.planeGroundY = 500;
@@ -614,6 +667,8 @@ class GameScene extends Phaser.Scene {
         this.canLoseLife = false;
         this.hasStartedMoving = false;
 
+        this.sound.play('sfx_ow');
+
         this.cameras.main.flash(300, 255, 0, 0);
 
         const hearts = '❤️'.repeat(Math.max(0, this.lives)) + '🖤'.repeat(Math.max(0, 4 - this.lives));
@@ -692,6 +747,18 @@ class GameOverScene extends Phaser.Scene {
     }
 
     create() {
+        // Detiene cualquier música de fondo sonando
+        const musicKeys = ['bg_menu', 'bg_game'];
+        musicKeys.forEach(mKey => {
+            const m = this.sound.get(mKey);
+            if (m && m.isPlaying) {
+                m.stop();
+            }
+        });
+
+        // Reproduce el sonido de Game Over
+        this.sound.play('sfx_you_lose');
+
         this.cameras.main.setBackgroundColor('#1a0000');
 
         this.add.text(400, 200, '💀 ¡GAME OVER! 💀', {
@@ -734,6 +801,7 @@ class WinScene extends Phaser.Scene {
     }
 
     create() {
+        playMusic(this, 'bg_menu');
         this.cameras.main.setBackgroundColor('#0d1117');
 
         this.add.text(400, 130, '🎉 ¡NIVEL COMPLETADO! 🎉', {
@@ -803,6 +871,7 @@ class RecordScene extends Phaser.Scene {
     }
 
     create() {
+        playMusic(this, 'bg_menu');
         this.cameras.main.setBackgroundColor('#0d1117');
 
         this.add.text(400, 50, '🏆 TABLA DE RÉCORDS 🏆', {
