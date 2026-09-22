@@ -17,13 +17,23 @@ const levelList = ['press', 'row', 'curl', 'lateral_raise', 'triceps'];
 
 // MAPEO DICCIONARIO: Traduce lo que manda el Arduino o la Simulación
 const exerciseMap = {
-    'L': 'lateral_raise',
-    'T': 'triceps',
-    'B': 'curl',
-    'S': 'press',
-    'R': 'row',
+    // Caracteres individuales
+    'l': 'lateral_raise',
+    't': 'triceps',
+    'b': 'curl',
+    's': 'press',
+    'r': 'row',
     '0': 'still',
 
+    // ETIQUETAS EXACTAS DE EDGE IMPULSE
+    'elevacioneslat': 'lateral_raise',
+    'exttriceps': 'triceps',
+    'curlbiceps': 'curl',
+    'presshombro': 'press',
+    'remo': 'row',
+    'reposo': 'still',
+
+    // Otras variantes comunes por compatibilidad
     'lateral raises': 'lateral_raise',
     'lateral_raise': 'lateral_raise',
     'ext triceps': 'triceps',
@@ -34,7 +44,6 @@ const exerciseMap = {
     'press': 'press',
     'remo mancuerna': 'row',
     'row': 'row',
-    'reposo': 'still',
     'still': 'still'
 };
 
@@ -47,9 +56,10 @@ function simular(ejercicio) {
 
 // --- FUNCIÓN DE PROCESAMIENTO DE COMANDOS ---
 function procesarComando(valor) {
-    const key = valor.trim().toLowerCase();
+    // Sanitización exhaustiva: elimina espacios, saltos de línea (\r, \n) y el byte nulo (\0)
+    const key = valor.replace(/[\r\n\0]/g, '').trim().toLowerCase();
     currentExercise = exerciseMap[key] || key;
-    console.log("Comando recibido vía BLE:", currentExercise);
+    console.log("Comando recibido vía BLE (limpio):", key, "-> Mapeado a:", currentExercise);
 }
 
 // --- HELPER DE AUDIO CONTROLADO ---
@@ -93,10 +103,12 @@ document.getElementById('btn-connect')?.addEventListener('click', async () => {
             const characteristic = await service.getCharacteristic('19b10001-e8f2-537e-4f6c-d104768a1214');
 
             await characteristic.startNotifications();
+            
+            // RECEPCIÓN CORREGIDA: Limpia correctamente los bytes recibidos de Arduino
             characteristic.addEventListener('characteristicvaluechanged', (event) => {
                 const decoder = new TextDecoder('utf-8');
-                const valor = decoder.decode(event.target.value);
-                procesarComando(valor);
+                const valorBruto = decoder.decode(event.target.value);
+                procesarComando(valorBruto);
             });
 
             if (statusElem) statusElem.innerText = 'Estado: Conectado (BLE)';
@@ -112,9 +124,6 @@ document.getElementById('btn-connect')?.addEventListener('click', async () => {
 });
 
 
-// ==========================================
-// 1. ESCENA DE INICIO
-// ==========================================
 // ==========================================
 // 1. ESCENA DE INICIO
 // ==========================================
@@ -153,7 +162,7 @@ class HomeScene extends Phaser.Scene {
             strokeThickness: 5
         }).setOrigin(0.5);
 
-        // 3. Subtítulo (Con ajuste de ancho para que no choque con los bordes)
+        // 3. Subtítulo
         this.add.text(560, 220, 'Entrenamiento con Arduino\ny Machine Learning', {
             fontSize: '16px',
             fill: '#ffffff',
@@ -461,22 +470,20 @@ class GameScene extends Phaser.Scene {
 
         const isRowLevel = selectedLevel === 'row';
 
-        // AJUSTE DE FONDOS Y CAPAS (DEPTH)
         // 1. Cielo de fondo
         this.skyBg = this.add.image(400, 300, 'sky').setDisplaySize(800, 600).setDepth(0);
         
-        // 2. Río: Anclado desde la mitad de la pantalla hacia abajo para ocupar todo el cauce del agua
+        // 2. Río
         this.riverBg = this.add.tileSprite(0, 200, 800, 400, 'river')
             .setOrigin(0, 0)
             .setDepth(1);
         
-        // Ajustamos la textura del río para que cubra la franja sin deformarse
         this.riverBg.setTileScale(
             800 / this.textures.get('river').getSourceImage().width,
             400 / this.textures.get('river').getSourceImage().height
         );
         
-        // 3. Tierra de fondo (Mantiene tu Y=1200)
+        // 3. Tierra de fondo
         this.ground = this.add.image(400, 1200, 'ground').setScale(1.6).setOrigin(0.5, 1).setDepth(2);
 
         this.skyBg.setVisible(true);          
@@ -589,7 +596,7 @@ class GameScene extends Phaser.Scene {
                 this.playerPress.play('anim_press', true);
             } else if (selectedLevel === 'row') {
                 this.playerBoat.play('anim_boat', true);
-                this.riverBg.tilePositionX += 10; // Movimiento horizontal continuo de la textura del río
+                this.riverBg.tilePositionX += 10;
             } else if (selectedLevel === 'curl') {
                 this.playerCurl.play('anim_jhon_pull', true);
                 if (this.pulledLarry) {
@@ -776,7 +783,6 @@ class GameOverScene extends Phaser.Scene {
     }
 
     create() {
-        // Detiene cualquier música de fondo sonando
         const musicKeys = ['bg_menu', 'bg_game'];
         musicKeys.forEach(mKey => {
             const m = this.sound.get(mKey);
@@ -785,7 +791,6 @@ class GameOverScene extends Phaser.Scene {
             }
         });
 
-        // Reproduce el sonido de Game Over
         this.sound.play('sfx_you_lose');
 
         this.cameras.main.setBackgroundColor('#1a0000');
