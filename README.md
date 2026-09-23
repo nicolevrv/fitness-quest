@@ -62,10 +62,15 @@ fitness-quest/
 3. Dale clic a **Conectar Arduino** y elige `FitnessGameController` en la ventana de emparejamiento BLE.
 4. Elige nivel y dificultad, y a jugar.
 
-También puedes abrir el código en VScode, descargar el plugin LiveServer y dirigirte a index.html.
-Una vez ahí, un click derecho a la línea 72 del código (<script src="src/script.js"></script>) y luego elige "Open with Live Server".
+### También puedes hacerlo de esta forma:
+1. Abre el código en VScode
+2. Descarga el plugin LiveServer
+3. Abre el archivo "index.html".
+4. Haz click derecho a la línea 72 del código (<script src="src/script.js"></script>)
+5. Elige "Open with Live Server".
 Se debe abrir una página en tu navegador donde esté corriendo el juego.
-
+6. Dale clic a **Conectar Arduino** y elige `FitnessGameController` en la ventana de emparejamiento BLE.
+7. Elige nivel y dificultad, y a jugar.
 
 > ¿No tienes el Arduino a la mano? Usa los botones **Simular** de `index.html` (o llama a `simular('curl')`, `simular('press')`, etc. desde la consola del navegador) para forzar cada ejercicio y probar el juego sin la placa conectada.
 
