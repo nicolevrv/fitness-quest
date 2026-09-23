@@ -1,10 +1,10 @@
-// Variable global para almacenar el ejercicio actual detectado
-let currentExercise = 'still';
-let selectedLevel = 'press'; // Nivel seleccionado por defecto
 
-// CONFIGURACIÓN DE DIFICULTAD (Tiempos objetivo)
-let selectedDifficulty = 'medium'; // 'easy', 'medium', 'hard', 'custom'
-let customTime = 10; // Tiempo para modo personalizado
+let currentExercise = 'still';
+let selectedLevel = 'press';
+
+
+let selectedDifficulty = 'medium'; 
+let customTime = 10; 
 
 const difficultySettings = {
     easy: { press: 5, row: 6, curl: 5, lateral_raise: 4, triceps: 5 },
@@ -12,12 +12,12 @@ const difficultySettings = {
     hard: { press: 20, row: 24, curl: 20, lateral_raise: 16, triceps: 20 }
 };
 
-// LISTA ORDENADA DE NIVELES PARA NAVEGACIÓN
+
 const levelList = ['press', 'row', 'curl', 'lateral_raise', 'triceps'];
 
-// MAPEO DICCIONARIO: Traduce lo que manda el Arduino o la Simulación
+// Diccionario de lo que recive por bluetooth
 const exerciseMap = {
-    // Caracteres individuales
+
     'l': 'lateral_raise',
     't': 'triceps',
     'b': 'curl',
@@ -25,7 +25,7 @@ const exerciseMap = {
     'r': 'row',
     '0': 'still',
 
-    // ETIQUETAS EXACTAS DE EDGE IMPULSE
+
     'elevacioneslat': 'lateral_raise',
     'exttriceps': 'triceps',
     'curlbiceps': 'curl',
@@ -33,7 +33,7 @@ const exerciseMap = {
     'remo': 'row',
     'reposo': 'still',
 
-    // Otras variantes comunes por compatibilidad
+
     'lateral raises': 'lateral_raise',
     'lateral_raise': 'lateral_raise',
     'ext triceps': 'triceps',
@@ -47,29 +47,26 @@ const exerciseMap = {
     'still': 'still'
 };
 
-// --- FUNCIÓN DE SIMULACIÓN ---
+
 function simular(ejercicio) {
     const key = ejercicio.trim();
     currentExercise = exerciseMap[key] || exerciseMap[key.toLowerCase()] || key;
     console.log("Simulando ejercicio:", currentExercise);
 }
 
-// --- FUNCIÓN DE PROCESAMIENTO DE COMANDOS ---
+
 function procesarComando(valor) {
-    // Sanitización exhaustiva: elimina espacios, saltos de línea (\r, \n) y el byte nulo (\0)
-    // Los códigos que manda Arduino (L, T, B, S, R, 0) son sensibles a mayúscula,
-    // así que primero se busca tal cual; si no matchea, se prueba en minúscula
-    // (para las etiquetas largas de Edge Impulse como 'reposo', 'curl', etc.).
+
     const key = valor.replace(/[\r\n\0]/g, '').trim();
     currentExercise = exerciseMap[key] || exerciseMap[key.toLowerCase()] || key;
     console.log("Comando recibido vía BLE (limpio):", key, "-> Mapeado a:", currentExercise);
 }
 
-// --- HELPER DE AUDIO CONTROLADO ---
+
 function playMusic(scene, key) {
     const musicKeys = ['bg_menu', 'bg_game'];
     
-    // Detiene la otra música que pudiera estar sonando
+
     musicKeys.forEach(mKey => {
         if (mKey !== key) {
             const otherMusic = scene.sound.get(mKey);
@@ -79,7 +76,7 @@ function playMusic(scene, key) {
         }
     });
 
-    // Reproduce la música seleccionada si no está activa
+
     let currentMusic = scene.sound.get(key);
     if (!currentMusic) {
         currentMusic = scene.sound.add(key, { loop: true, volume: 0.5 });
@@ -89,7 +86,7 @@ function playMusic(scene, key) {
     }
 }
 
-// --- CONEXIÓN BLE CON ARDUINO ---
+// Conexion bluethoot al arduino
 document.getElementById('btn-connect')?.addEventListener('click', async () => {
     if ('bluetooth' in navigator) {
         try {
@@ -107,7 +104,7 @@ document.getElementById('btn-connect')?.addEventListener('click', async () => {
 
             await characteristic.startNotifications();
             
-            // RECEPCIÓN CORREGIDA: Limpia correctamente los bytes recibidos de Arduino
+
             characteristic.addEventListener('characteristicvaluechanged', (event) => {
                 const decoder = new TextDecoder('utf-8');
                 const valorBruto = decoder.decode(event.target.value);
@@ -127,16 +124,16 @@ document.getElementById('btn-connect')?.addEventListener('click', async () => {
 });
 
 
-// ==========================================
-// 1. ESCENA DE INICIO
-// ==========================================
+
+// Pantalla de inicio
+
 class HomeScene extends Phaser.Scene {
     constructor() {
         super({ key: 'HomeScene' });
     }
 
     preload() {
-        // Carga de imagen de portada y audios
+
         this.load.image('home_cover', 'assets/jhonmain.png');
         
         this.load.audio('bg_menu', 'assets/arrrrrcade.mp3');
@@ -147,7 +144,7 @@ class HomeScene extends Phaser.Scene {
     }
 
     create() {
-        // 1. Fondo con la imagen de portada escalada a la pantalla (800x600)
+
         this.add.image(400, 300, 'home_cover').setDisplaySize(800, 600);
 
         playMusic(this, 'bg_menu');
@@ -156,7 +153,7 @@ class HomeScene extends Phaser.Scene {
             playMusic(this, 'bg_menu');
         });
 
-        // 2. Título principal (Alineado a la derecha en X = 560)
+
         this.add.text(560, 150, 'FITNESS QUEST', {
             fontSize: '40px',
             fill: '#00ffff',
@@ -165,7 +162,7 @@ class HomeScene extends Phaser.Scene {
             strokeThickness: 5
         }).setOrigin(0.5);
 
-        // 3. Subtítulo
+
         this.add.text(560, 220, 'Entrenamiento con Arduino\ny Machine Learning', {
             fontSize: '16px',
             fill: '#ffffff',
@@ -174,7 +171,7 @@ class HomeScene extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5);
 
-        // 4. Botón INICIAR JUEGO
+
         const startBtn = this.add.text(560, 330, ' [ INICIAR JUEGO ] ', {
             fontSize: '22px',
             fill: '#28a745',
@@ -192,7 +189,7 @@ class HomeScene extends Phaser.Scene {
             this.scene.start('DifficultyScene');
         });
 
-        // 5. Botón TABLA DE RÉCORDS
+
         const recordsBtn = this.add.text(560, 410, ' 🏆 TABLA DE RÉCORDS 🏆 ', {
             fontSize: '18px',
             fill: '#ffc107',
@@ -212,9 +209,9 @@ class HomeScene extends Phaser.Scene {
     }
 }
 
-// ==========================================
-// 2. ESCENA DE DIFICULTAD
-// ==========================================
+
+// Selector de dificultad
+
 class DifficultyScene extends Phaser.Scene {
     constructor() {
         super({ key: 'DifficultyScene' });
@@ -307,9 +304,9 @@ class DifficultyScene extends Phaser.Scene {
 }
 
 
-// ==========================================
-// 3. ESCENA DE SELECCIÓN DE NIVELES
-// ==========================================
+
+// Niveles
+
 class MenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MenuScene' });
@@ -374,16 +371,16 @@ class MenuScene extends Phaser.Scene {
 }
 
 
-// ==========================================
-// 4. ESCENA DE CUENTA REGRESIVA
-// ==========================================
+
+// Transicion
+
 class CountdownScene extends Phaser.Scene {
     constructor() {
         super({ key: 'CountdownScene' });
     }
 
     create() {
-        // Silenciamos la música de menú durante el conteo
+
         const bgMusic = this.sound.get('bg_menu');
         if (bgMusic && bgMusic.isPlaying) {
             bgMusic.stop();
@@ -426,9 +423,9 @@ class CountdownScene extends Phaser.Scene {
 }
 
 
-// ==========================================
-// 5. ESCENA PRINCIPAL DEL JUEGO
-// ==========================================
+
+// Juegos !!
+
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
@@ -462,7 +459,7 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // Inicia la música de acción del juego (urgency.mp3)
+
         playMusic(this, 'bg_game');
 
         this.levelCompleted = false;
@@ -473,10 +470,10 @@ class GameScene extends Phaser.Scene {
 
         const isRowLevel = selectedLevel === 'row';
 
-        // 1. Cielo de fondo
+
         this.skyBg = this.add.image(400, 300, 'sky').setDisplaySize(800, 600).setDepth(0);
         
-        // 2. Río
+
         this.riverBg = this.add.tileSprite(0, 200, 800, 400, 'river')
             .setOrigin(0, 0)
             .setDepth(1);
@@ -486,7 +483,7 @@ class GameScene extends Phaser.Scene {
             400 / this.textures.get('river').getSourceImage().height
         );
         
-        // 3. Tierra de fondo
+
         this.ground = this.add.image(400, 1200, 'ground').setScale(1.6).setOrigin(0.5, 1).setDepth(2);
 
         this.skyBg.setVisible(true);          
@@ -777,9 +774,9 @@ class GameScene extends Phaser.Scene {
 }
 
 
-// ==========================================
-// 6. ESCENA DE GAME OVER
-// ==========================================
+
+// Pantalla de muerte
+
 class GameOverScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameOverScene' });
@@ -825,9 +822,9 @@ class GameOverScene extends Phaser.Scene {
 }
 
 
-// ==========================================
-// 7. ESCENA DE GANAR
-// ==========================================
+
+// Pantalla de victoria
+
 class WinScene extends Phaser.Scene {
     constructor() {
         super({ key: 'WinScene' });
@@ -899,9 +896,9 @@ class WinScene extends Phaser.Scene {
 }
 
 
-// ==========================================
-// 8. ESCENA DEL TABLERO DE RÉCORDS
-// ==========================================
+
+// Records
+
 class RecordScene extends Phaser.Scene {
     constructor() {
         super({ key: 'RecordScene' });
@@ -966,9 +963,9 @@ class RecordScene extends Phaser.Scene {
 }
 
 
-// ==========================================
-// CONFIGURACIÓN DE PHASER
-// ==========================================
+
+// Configuracion de Phaser
+
 const config = {
     type: Phaser.AUTO,
     width: 800,
