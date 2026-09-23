@@ -18,11 +18,11 @@ const levelList = ['press', 'row', 'curl', 'lateral_raise', 'triceps'];
 // MAPEO DICCIONARIO: Traduce lo que manda el Arduino o la Simulación
 const exerciseMap = {
     // Caracteres individuales
-    'l': 'lateral_raise',
-    't': 'triceps',
-    'b': 'curl',
-    's': 'press',
-    'r': 'row',
+    'L': 'lateral_raise',
+    'T': 'triceps',
+    'B': 'curl',
+    'S': 'press',
+    'R': 'row',
     '0': 'still',
 
     // ETIQUETAS EXACTAS DE EDGE IMPULSE
@@ -95,7 +95,7 @@ document.getElementById('btn-connect')?.addEventListener('click', async () => {
 
             const device = await navigator.bluetooth.requestDevice({
                 filters: [{ name: 'FitnessGameController' }],
-                optionalServices: ['19b10001-e8f2-537e-4f6c-d104768a1214']
+                optionalServices: ['19b10000-e8f2-537e-4f6c-d104768a1214']
             });
 
             const server = await device.gatt.connect();
