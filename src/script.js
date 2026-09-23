@@ -18,11 +18,11 @@ const levelList = ['press', 'row', 'curl', 'lateral_raise', 'triceps'];
 // MAPEO DICCIONARIO: Traduce lo que manda el Arduino o la Simulación
 const exerciseMap = {
     // Caracteres individuales
-    'L': 'lateral_raise',
-    'T': 'triceps',
-    'B': 'curl',
-    'S': 'press',
-    'R': 'row',
+    'l': 'lateral_raise',
+    't': 'triceps',
+    'b': 'curl',
+    's': 'press',
+    'r': 'row',
     '0': 'still',
 
     // ETIQUETAS EXACTAS DE EDGE IMPULSE
@@ -49,16 +49,19 @@ const exerciseMap = {
 
 // --- FUNCIÓN DE SIMULACIÓN ---
 function simular(ejercicio) {
-    const key = ejercicio.trim().toLowerCase();
-    currentExercise = exerciseMap[key] || key;
+    const key = ejercicio.trim();
+    currentExercise = exerciseMap[key] || exerciseMap[key.toLowerCase()] || key;
     console.log("Simulando ejercicio:", currentExercise);
 }
 
 // --- FUNCIÓN DE PROCESAMIENTO DE COMANDOS ---
 function procesarComando(valor) {
     // Sanitización exhaustiva: elimina espacios, saltos de línea (\r, \n) y el byte nulo (\0)
-    const key = valor.replace(/[\r\n\0]/g, '').trim().toLowerCase();
-    currentExercise = exerciseMap[key] || key;
+    // Los códigos que manda Arduino (L, T, B, S, R, 0) son sensibles a mayúscula,
+    // así que primero se busca tal cual; si no matchea, se prueba en minúscula
+    // (para las etiquetas largas de Edge Impulse como 'reposo', 'curl', etc.).
+    const key = valor.replace(/[\r\n\0]/g, '').trim();
+    currentExercise = exerciseMap[key] || exerciseMap[key.toLowerCase()] || key;
     console.log("Comando recibido vía BLE (limpio):", key, "-> Mapeado a:", currentExercise);
 }
 

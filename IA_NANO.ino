@@ -1,4 +1,4 @@
-#include <ArduinoBLE.h>
+  #include <ArduinoBLE.h>
 #include <Arduino_LSM9DS1.h> 
 #include <Robinson.Bastidas-project-1_inferencing.h>
 
@@ -11,14 +11,19 @@ static float features[EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE];
 static size_t feature_index = 0;
 int printDivider = 0;
 
-// Convert label string to single character code
+// Convert label string to single character code (Flexible e inmune a mayúsculas/minúsculas)
 char getExerciseCode(const char* label) {
-  if (strcmp(label, "lateral raises") == 0) return 'L';
-  if (strcmp(label, "Ext triceps") == 0)    return 'T';
-  if (strcmp(label, "curl biceps") == 0)    return 'B';
-  if (strcmp(label, "shoulder press") == 0) return 'S';
-  if (strcmp(label, "remo mancuerna") == 0) return 'R';
-  if (strcmp(label, "reposo") == 0)         return '0';
+  String l = String(label);
+  l.toLowerCase();
+  l.trim();
+
+  if (l.indexOf("elevacioneslat") >= 0 || l.indexOf("lateral") >= 0) return 'L';
+  if (l.indexOf("exttriceps") >= 0     || l.indexOf("triceps") >= 0) return 'T';
+  if (l.indexOf("curlbiceps") >= 0     || l.indexOf("curl") >= 0)    return 'B';
+  if (l.indexOf("presshombro") >= 0    || l.indexOf("press") >= 0)   return 'S';
+  if (l.indexOf("remo") >= 0           || l.indexOf("row") >= 0)     return 'R';
+  if (l.indexOf("reposo") >= 0        || l.indexOf("still") >= 0)   return '0';
+
   return '0'; // Default fallback
 }
 
@@ -45,7 +50,7 @@ void setup() {
   BLE.addService(exerciseService);
   
   // Set default initial state to Reposo ('0')
-  exerciseChar.writeValue('0');
+  exerciseChar.writeValue((byte)'0');
   BLE.advertise();
 
   Serial.println("==================================================");
@@ -54,7 +59,6 @@ void setup() {
 }
 
 void loop() {
-  // Escuchar conexiones de clientes BLE
   BLEDevice central = BLE.central();
 
   if (central) {
@@ -62,16 +66,14 @@ void loop() {
     Serial.println(central.address());
 
     while (central.connected()) {
-      // Mantiene viva la conexión BLE procesando eventos en segundo plano
-      BLE.poll();
-
-      // 1. Leer sensores IMU cuando estén disponibles
+      
+      // 1. Read IMU sensors and load feature buffer (50Hz = 20ms delay)
       if (IMU.accelerationAvailable() && IMU.gyroscopeAvailable()) {
         float ax, ay, az, gx, gy, gz;
         IMU.readAcceleration(ax, ay, az);
         IMU.readGyroscope(gx, gy, gz);
 
-        // Imprimir datos cada 10 muestras (~200ms)
+        // Print sensor values every 10 samples (~200ms) to avoid flooding the console
         if (++printDivider >= 10) {
           Serial.print("[IMU Read] ACC (g): ");
           Serial.print(ax, 2); Serial.print(", ");
@@ -84,27 +86,23 @@ void loop() {
           printDivider = 0;
         }
 
-        // Llenar buffer de características
-        if (feature_index < EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE) {
-          features[feature_index++] = ax;
-          features[feature_index++] = ay;
-          features[feature_index++] = az;
-          features[feature_index++] = gx;
-          features[feature_index++] = gy;
-          features[feature_index++] = gz;
-        }
+        // Fill feature array (must match your Edge Impulse model axis order)
+        features[feature_index++] = ax;
+        features[feature_index++] = ay;
+        features[feature_index++] = az;
+        features[feature_index++] = gx;
+        features[feature_index++] = gy;
+        features[feature_index++] = gz;
 
         delay(20); 
       }
 
-      // 2. Ejecutar clasificación cuando el buffer esté lleno
+      // 2. Run classification when feature buffer is full
       if (feature_index >= EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE) {
         signal_t signal;
         numpy::signal_from_buffer(features, EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE, &signal);
 
         ei_impulse_result_t result = { 0 };
-
-        // Procesa la inferencia de ML
         EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
 
         if (res == EI_IMPULSE_OK) {
@@ -126,8 +124,9 @@ void loop() {
           }
 
           char exerciseCode = '0';
-          // Umbral de confianza al 60%
-          if (best_index >= 0 && max_confidence >= 0.60) {
+          
+          // Umbral de confianza ajustado a 45% (0.45) para evitar falso "Reposo"
+          if (best_index >= 0 && max_confidence >= 0.45) {
             const char* detectedLabel = result.classification[best_index].label;
             exerciseCode = getExerciseCode(detectedLabel);
 
@@ -140,14 +139,11 @@ void loop() {
             Serial.println(">>> LOW CONFIDENCE -> TRANSMITTING CHAR: '0' (reposo) <<<\n");
           }
 
-          // Enviar dato mediante BLE
-          exerciseChar.writeValue(exerciseCode);
+          // Envio explícito en formato byte por BLE
+          exerciseChar.writeValue((byte)exerciseCode);
         }
 
-        // Refrescar eventos BLE inmediatamente después de la inferencia
-        BLE.poll();
-
-        // Ventana deslizante (solapamiento del 50%)
+        // Shift sliding window (50% overlay for continuous tracking)
         size_t shift_size = EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE / 2;
         memmove(features, features + shift_size, (EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE - shift_size) * sizeof(float));
         feature_index = EI_CLASSIFIER_DSP_INPUT_FRAME_SIZE - shift_size;
